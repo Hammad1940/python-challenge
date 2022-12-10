@@ -1,0 +1,289 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[2]:
+
+
+get_ipython().system('pip install yfinance --user')
+
+
+# In[3]:
+
+
+get_ipython().system('pip install chart-studio')
+
+
+# In[4]:
+
+
+import yfinance as yf
+# import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+get_ipython().run_line_magic('matplotlib', 'inline')
+
+from math import *
+import seaborn
+import warnings
+warnings.filterwarnings("ignore")
+
+
+import chart_studio.plotly as py
+import plotly.graph_objects as go
+import plotly.offline as pyoff
+import plotly.express as px
+from datetime import datetime
+
+
+# In[5]:
+
+
+# margins for the data
+start_date = datetime.strptime("01-01-2019", '%d-%m-%Y')
+end_date = datetime.strptime("01-12-2022", '%d-%m-%Y')
+
+
+# In[6]:
+
+
+# fetch netflix data from yfinance
+netflix_stocks = yf.download("NFLX", start = start_date, end=end_date)
+netflix_df = pd.DataFrame(netflix_stocks)
+netflix_df.head()
+
+
+# In[7]:
+
+
+nflx = yf.Ticker("NFLX")
+
+
+# In[8]:
+
+
+# fetch disney data from yfinance
+disney_stocks = yf.download("DIS", start = start_date, end=end_date)
+disney_df = pd.DataFrame(disney_stocks)
+disney_df.head()
+
+
+# In[9]:
+
+
+
+dis = yf.Ticker("DIS")
+
+
+# # Stock Price Movement over the Years
+
+# In[10]:
+
+
+nflx_data = netflix_df.loc[:,"Close"].reset_index()
+dis_data = disney_df.loc[:,"Close"].reset_index()
+both_stock = pd.merge(nflx_data, dis_data, on=['Date'], suffixes=("_Netflix" , "_Disney"))
+both_stock = both_stock.rename(columns={'Close_Netflix' : 'Netflix', 'Close_Disney' : 'Disney'})
+both_stock
+
+
+# ## - It seems netflix prices are always high as of disney
+
+# In[11]:
+
+
+## Line Plots for Netflix and Disney
+fig = px.line(
+    both_stock, 
+    x = 'Date',
+    y = [
+        'Netflix',
+        'Disney'
+    ]
+)
+
+fig.update_layout(
+    title = 'Netflix vs Disney Stock Price', # adding the title 
+    xaxis_title = 'Dates', # title for x axis 
+    yaxis_title = 'Prices', # title for y axis 
+    xaxis = dict(           # attribures for x axis 
+        showline = True,
+        showgrid = True,
+        linecolor = 'black',
+        tickfont = dict(
+            family = 'Calibri'
+        )
+    ),
+    yaxis = dict(           # attribures for y axis 
+        showline = True,
+        showgrid = True,
+        linecolor = 'black',
+        tickfont = dict(
+            family = 'Times New Roman'
+        )
+    ),
+    plot_bgcolor = 'white'  # background color for the graph
+)
+
+fig.show()
+
+
+# # -Quartile of Stocks
+
+# In[12]:
+
+
+stock_quartile = both_stock.describe().loc[['25%', '50%', '75%'], : ].reset_index()
+stock_quartile = stock_quartile.rename(columns={'index' :'Quartile'})
+stock_quartile
+
+
+# ## -Box plot Comparison of Stock Prices
+
+# In[13]:
+
+
+boxplot_df = both_stock.melt(id_vars = ['Date'], var_name='Stocks', value_name='Price')
+boxplot_df
+
+
+# In[14]:
+
+
+## basic box plot
+fig = px.box(
+    boxplot_df, 
+    x = 'Stocks',
+    y = 'Price',
+    title = 'Prices By Stocks',
+    points = 'all', # will display dots next to the boxes 
+    labels = {
+        'x': 'Stocks',
+        'y': 'Price',
+    }
+)
+
+fig.update_layout(
+    plot_bgcolor = 'white',
+    xaxis = dict(
+        showline = True,
+        linecolor = 'black'
+    ),
+    
+    yaxis = dict(
+        showline = True,
+        showgrid = False,
+        linecolor = 'black'
+    )
+    
+)
+
+fig.show()
+
+
+# In[15]:
+
+
+return_stocks = both_stock.copy()
+return_stocks = return_stocks.set_index('Date')
+return_stocks = return_stocks.pct_change()
+corr = return_stocks.corr()
+corr
+
+
+# # - It seems stocks are opposite related to each other, when netflix returns are high, disney goes down and vice versa.
+
+# In[16]:
+
+
+## the iris dataset 
+df = px.data.iris()
+
+fig = px.scatter(
+    corr,
+    x = 'Netflix',
+    y = 'Disney',
+    size = 'Netflix', # size of the dots will be proportional to Netflix
+    hover_data = ['Netflix', 'Disney'] # additional info when hovered over a dot 
+)
+
+fig.update_layout(
+    title = 'Distribution of Netflix/Disney', # adding the title 
+    xaxis_title = 'Return of Netflix', # title for x axis 
+    yaxis_title = 'Return of Disney', # title for y axis 
+    xaxis = dict(
+    showline = True,
+    linecolor = 'black',
+    showgrid = False),
+    yaxis = dict(
+        showline = True,
+        showgrid = False,
+        linecolor = 'black'
+    ),
+    plot_bgcolor = 'white'
+)
+fig.show()
+
+
+# # Stock Volume Movement over the Years
+
+# In[17]:
+
+
+nflx_data = netflix_df.loc[:,"Volume"].reset_index()
+dis_data = disney_df.loc[:,"Volume"].reset_index()
+both_stock = pd.merge(nflx_data, dis_data, on=['Date'], suffixes=("_Netflix" , "_Disney"))
+both_stock = both_stock.rename(columns={'Volume_Netflix' : 'Netflix', 'Volume_Disney' : 'Disney'})
+both_stock
+
+
+# In[18]:
+
+
+## Line Plots for Netflix and Disney
+fig = px.line(
+    both_stock, 
+    x = 'Date',
+    y = [
+        'Netflix',
+        'Disney'
+    ]
+)
+
+fig.update_layout(
+    title = 'Netflix vs Disney Stock Volume', # adding the title 
+    xaxis_title = 'Dates', # title for x axis 
+    yaxis_title = 'Volume', # title for y axis 
+    xaxis = dict(           # attribures for x axis 
+        showline = True,
+        showgrid = True,
+        linecolor = 'black',
+        tickfont = dict(
+            family = 'Calibri'
+        )
+    ),
+    yaxis = dict(           # attribures for y axis 
+        showline = True,
+        showgrid = True,
+        linecolor = 'black',
+        tickfont = dict(
+            family = 'Times New Roman'
+        )
+    ),
+    plot_bgcolor = 'white'  # background color for the graph
+)
+
+fig.show()
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
